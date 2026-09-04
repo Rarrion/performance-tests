@@ -1,0 +1,16 @@
+services:
+  script:
+    build:
+      context: .
+      dockerfile: Dockerfile.compose-example
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
