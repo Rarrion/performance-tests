@@ -1,5 +1,3 @@
-import time
-
 from httpx import Response
 
 from clients.http.client import HTTPClient
@@ -46,17 +44,13 @@ class UsersGatewayHTTPClient(HTTPClient):
 
     def create_user(self) -> CreateUserResponseSchema:
         """
-        Создать пользователя и вернуть провалидированный ответ.
+        Создать пользователя со случайными данными и вернуть провалидированный ответ.
+
+        Данные пользователя генерируются на уровне модели CreateUserRequestSchema.
 
         :return: Pydantic-модель с данными созданного пользователя.
         """
-        request = CreateUserRequestSchema(
-            email=f"user.{time.time()}@example.com",
-            last_name="string",
-            first_name="string",
-            middle_name="string",
-            phone_number="string"
-        )
+        request = CreateUserRequestSchema()
         response = self.create_user_api(request)
         return CreateUserResponseSchema.model_validate_json(response.text)
 

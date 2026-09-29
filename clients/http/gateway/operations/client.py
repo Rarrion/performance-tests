@@ -3,7 +3,6 @@ from httpx import Response, QueryParams
 from clients.http.client import HTTPClient
 from clients.http.gateway.client import build_gateway_http_client
 from clients.http.gateway.operations.schema import (
-    OperationStatus,
     GetOperationResponseSchema,
     GetOperationReceiptResponseSchema,
     GetOperationsQuerySchema,
@@ -208,12 +207,7 @@ class OperationsGatewayHTTPClient(HTTPClient):
         :param account_id: Идентификатор счета.
         :return: Pydantic-модель с данными созданной операции.
         """
-        request = MakeFeeOperationRequestSchema(
-            status=OperationStatus.COMPLETED,
-            amount=55.77,
-            card_id=card_id,
-            account_id=account_id
-        )
+        request = MakeFeeOperationRequestSchema(card_id=card_id, account_id=account_id)
         response = self.make_fee_operation_api(request)
         return MakeFeeOperationResponseSchema.model_validate_json(response.text)
 
@@ -225,12 +219,7 @@ class OperationsGatewayHTTPClient(HTTPClient):
         :param account_id: Идентификатор счета.
         :return: Pydantic-модель с данными созданной операции.
         """
-        request = MakeTopUpOperationRequestSchema(
-            status=OperationStatus.COMPLETED,
-            amount=1500.11,
-            card_id=card_id,
-            account_id=account_id
-        )
+        request = MakeTopUpOperationRequestSchema(card_id=card_id, account_id=account_id)
         response = self.make_top_up_operation_api(request)
         return MakeTopUpOperationResponseSchema.model_validate_json(response.text)
 
@@ -242,12 +231,7 @@ class OperationsGatewayHTTPClient(HTTPClient):
         :param account_id: Идентификатор счета.
         :return: Pydantic-модель с данными созданной операции.
         """
-        request = MakeCashbackOperationRequestSchema(
-            status=OperationStatus.COMPLETED,
-            amount=25.5,
-            card_id=card_id,
-            account_id=account_id
-        )
+        request = MakeCashbackOperationRequestSchema(card_id=card_id, account_id=account_id)
         response = self.make_cashback_operation_api(request)
         return MakeCashbackOperationResponseSchema.model_validate_json(response.text)
 
@@ -259,12 +243,7 @@ class OperationsGatewayHTTPClient(HTTPClient):
         :param account_id: Идентификатор счета.
         :return: Pydantic-модель с данными созданной операции.
         """
-        request = MakeTransferOperationRequestSchema(
-            status=OperationStatus.COMPLETED,
-            amount=300.99,
-            card_id=card_id,
-            account_id=account_id
-        )
+        request = MakeTransferOperationRequestSchema(card_id=card_id, account_id=account_id)
         response = self.make_transfer_operation_api(request)
         return MakeTransferOperationResponseSchema.model_validate_json(response.text)
 
@@ -276,13 +255,7 @@ class OperationsGatewayHTTPClient(HTTPClient):
         :param account_id: Идентификатор счета.
         :return: Pydantic-модель с данными созданной операции.
         """
-        request = MakePurchaseOperationRequestSchema(
-            status=OperationStatus.COMPLETED,
-            amount=77.99,
-            card_id=card_id,
-            account_id=account_id,
-            category="taxi"
-        )
+        request = MakePurchaseOperationRequestSchema(card_id=card_id, account_id=account_id)
         response = self.make_purchase_operation_api(request)
         return MakePurchaseOperationResponseSchema.model_validate_json(response.text)
 
@@ -294,12 +267,7 @@ class OperationsGatewayHTTPClient(HTTPClient):
         :param account_id: Идентификатор счета.
         :return: Pydantic-модель с данными созданной операции.
         """
-        request = MakeBillPaymentOperationRequestSchema(
-            status=OperationStatus.COMPLETED,
-            amount=100.0,
-            card_id=card_id,
-            account_id=account_id
-        )
+        request = MakeBillPaymentOperationRequestSchema(card_id=card_id, account_id=account_id)
         response = self.make_bill_payment_operation_api(request)
         return MakeBillPaymentOperationResponseSchema.model_validate_json(response.text)
 
@@ -313,12 +281,7 @@ class OperationsGatewayHTTPClient(HTTPClient):
         :param account_id: Идентификатор счета.
         :return: Pydantic-модель с данными созданной операции.
         """
-        request = MakeCashWithdrawalOperationRequestSchema(
-            status=OperationStatus.COMPLETED,
-            amount=500.0,
-            card_id=card_id,
-            account_id=account_id
-        )
+        request = MakeCashWithdrawalOperationRequestSchema(card_id=card_id, account_id=account_id)
         response = self.make_cash_withdrawal_operation_api(request)
         return MakeCashWithdrawalOperationResponseSchema.model_validate_json(response.text)
 
