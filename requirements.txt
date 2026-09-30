@@ -5,3 +5,4 @@ faker==40.40.0
 grpcio==1.71.0
 grpcio-tools==1.71.0
 gevent==25.5.1
+locust==2.37.14
