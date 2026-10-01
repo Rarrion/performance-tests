@@ -8,3 +8,4 @@ gevent==25.5.1
 locust==2.37.14
 fastapi==0.142.2
 uvicorn==0.54.0
+pydantic-settings==2.15.0
