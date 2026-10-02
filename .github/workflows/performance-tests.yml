@@ -28,12 +28,8 @@ on:
         required: true
         description: 'Locust config file'  # Комментарий, отображаемый в UI при запуске
 
-# Даём токену GITHUB_TOKEN право на запись в репозиторий: оно нужно для публикации отчёта в ветку gh-pages.
-# Благодаря этому не нужно менять настройки репозитория (Settings → Actions → General → Workflow permissions)
-permissions:
-  contents: write
-
 jobs:
+  # Джоба №1 — поднимает урезанный стенд, запускает нагрузочные тесты и сохраняет папку reports как артефакт
   run-tests:
     runs-on: ubuntu-latest  # Используется стандартный GitHub Actions runner
     timeout-minutes: 30  # Ограничение по времени выполнения — 30 минут
@@ -87,18 +83,44 @@ jobs:
       - name: Run load tests and generate HTML report
         run: locust --config=${{ github.event.inputs.SCENARIO }} --html=./reports/${{ github.run_id }}/index.html
 
-      # 10. Деплой HTML-отчёта в GitHub Pages, чтобы можно было посмотреть результаты в браузере
-      - name: Deploy HTML report to GitHub Pages
-        if: always()
-        uses: peaceiris/actions-gh-pages@v4
+      # 10. Сохраняем папку reports как артефакт, чтобы передать её в джобу publish-report
+      - name: Upload reports
+        if: always()  # Сохраняем отчёт даже если тесты упали
+        uses: actions/upload-artifact@v7
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}  # Авторизация для push в gh-pages
-          keep_files: true  # Сохраняем предыдущие отчёты
-          publish_dir: reports  # Публикуем директорию reports
-          publish_branch: gh-pages  # На ветке gh-pages
+          name: reports  # Имя артефакта
+          path: reports  # Папка с HTML-отчётом
 
       # 11. Корректно останавливаем docker-контейнеры и удаляем volume-ы (например, temp-файлы)
       - name: Stop test services
         if: always()
         run: docker compose -f docker-compose.ci.yaml down -v
         working-directory: performance-qa-engineer-course
+
+  # Джоба №2 — скачивает артефакт reports и публикует HTML-отчёт на GitHub Pages
+  publish-report:
+    needs: run-tests  # Запускается только после завершения джобы run-tests
+    if: always()  # Публикуем отчёт даже если джоба run-tests завершилась с ошибкой
+    runs-on: ubuntu-latest  # Используется стандартный GitHub Actions runner
+
+    # Даём токену GITHUB_TOKEN право на запись в репозиторий: оно нужно для публикации отчёта в ветку gh-pages.
+    # Благодаря этому не нужно менять настройки репозитория (Settings → Actions → General → Workflow permissions)
+    permissions:
+      contents: write
+
+    steps:
+      # 1. Скачиваем артефакт reports, сохранённый в джобе run-tests
+      - name: Download reports
+        uses: actions/download-artifact@v8
+        with:
+          name: reports  # Имя артефакта из джобы run-tests
+          path: reports  # Куда распаковать папку с HTML-отчётом
+
+      # 2. Деплой HTML-отчёта в GitHub Pages, чтобы можно было посмотреть результаты в браузере
+      - name: Deploy HTML report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}  # Авторизация для push в gh-pages
+          keep_files: true  # Сохраняем предыдущие отчёты
+          publish_dir: reports  # Публикуем директорию reports
+          publish_branch: gh-pages  # На ветке gh-pages
