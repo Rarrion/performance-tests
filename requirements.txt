@@ -1,11 +1,11 @@
-httpx==0.28.1
-pydantic==2.13.5
 email-validator==2.3.0
-faker==40.40.0
+Faker==40.40.0
+fastapi==0.142.2
+gevent==25.5.1
 grpcio==1.71.0
 grpcio-tools==1.71.0
-gevent==25.5.1
+httpx==0.28.1
 locust==2.37.14
-fastapi==0.142.2
-uvicorn==0.54.0
+pydantic==2.13.5
 pydantic-settings==2.15.0
+uvicorn==0.54.0

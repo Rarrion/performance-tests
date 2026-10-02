@@ -1,11 +1,25 @@
-# Виртуальное окружение
-.venv/
+# pycharm
+.idea
+
+# python
+.venv
+__pycache__
+
+# locust
+dumps
+locust_*.csv
+locust_*.json
+report.html
+
+# Mac OS
+.DS_Store
+
+# Другие виртуальные окружения
 venv/
 env/
 ENV/
 
-# Кеш и артефакты Python
-__pycache__/
+# Кеш и артефакты сборки Python
 *.py[cod]
 *$py.class
 *.egg-info/
@@ -13,24 +27,20 @@ __pycache__/
 build/
 dist/
 
-# Настройки IDE
-.idea/
+# Настройки других IDE
 .vscode/
 *.iml
 
-# Артефакты тестов и отчёты
+# Артефакты тестов и логи
 .pytest_cache/
-allure-results/
-allure-report/
-locust-reports/
 *.log
 
-# Секреты и локальные настройки
-# (.env с настройками учебного стенда хранится в репозитории — его читает config.py)
+# Локальные настройки
+# (.env с настройками учебного стенда хранится в репозитории: его читает config.py,
+# секретов в нём нет, а без него нагрузочные тесты не запустятся ни локально, ни на CI)
 .env.local
 
-# Системные файлы
-.DS_Store
+# Системные файлы Windows
 Thumbs.db
 desktop.ini
 
