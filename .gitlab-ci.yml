@@ -1,0 +1,166 @@
+# -----------------------------------------------------------------------------
+# GitLab CI pipeline: запуск нагрузочных тестов Locust и публикация HTML-отчёта
+# -----------------------------------------------------------------------------
+
+# Определяем стадии пайплайна:
+# - test: установка окружения, запуск мок-сервисов, выполнение нагрузочных тестов
+# - deploy: публикация HTML-отчёта Locust через GitLab Pages
+stages:
+  - test
+  - deploy
+
+# -----------------------------------------------------------------------------
+# Глобальные переменные окружения
+# -----------------------------------------------------------------------------
+# ENV_FILE — используется тестовыми сервисами.
+# PYTHONPATH — включает путь к сгенерированным protobuf-файлам.
+# SCENARIO — выбранный сценарий Locust (меняется вручную в интерфейсе GitLab CI).
+variables:
+  ENV_FILE: .env.ci.local
+  PYTHONPATH: ./:./protos/gen
+
+  # SCENARIO — ключевая переменная, определяющая какой конфигурационный файл Locust запускать.
+  # Благодаря options, GitLab покажет выпадающий список в интерфейсе Trigger pipeline.
+  SCENARIO:
+    value: "./scenarios/grpc/gateway/new_user_get_accounts/v1.0.conf"
+    options:
+      # grpc-сценарии
+      - ./scenarios/grpc/gateway/existing_user_get_documents/v1.0.conf
+      - ./scenarios/grpc/gateway/existing_user_get_operations/v1.0.conf
+      - ./scenarios/grpc/gateway/existing_user_issue_virtual_card/v1.0.conf
+      - ./scenarios/grpc/gateway/existing_user_make_purchase_operation/v1.0.conf
+      - ./scenarios/grpc/gateway/new_user_get_accounts/v1.0.conf
+      - ./scenarios/grpc/gateway/new_user_get_documents/v1.0.conf
+      - ./scenarios/grpc/gateway/new_user_issue_physical_card/v1.0.conf
+      - ./scenarios/grpc/gateway/new_user_make_top_up_operation/v1.0.conf
+      # http-сценарии
+      - ./scenarios/http/gateway/existing_user_get_documents/v1.0.conf
+      - ./scenarios/http/gateway/existing_user_get_operations/v1.0.conf
+      - ./scenarios/http/gateway/existing_user_issue_virtual_card/v1.0.conf
+      - ./scenarios/http/gateway/existing_user_make_purchase_operation/v1.0.conf
+      - ./scenarios/http/gateway/new_user_get_accounts/v1.0.conf
+      - ./scenarios/http/gateway/new_user_get_documents/v1.0.conf
+      - ./scenarios/http/gateway/new_user_issue_physical_card/v1.0.conf
+      - ./scenarios/http/gateway/new_user_make_top_up_operation/v1.0.conf
+    description: "Locust config file"
+
+# -----------------------------------------------------------------------------
+# Джоба №1 — установка окружения, запуск тестового стенда, выполнение нагрузочных тестов Locust
+# -----------------------------------------------------------------------------
+run-tests:
+  stage: test
+
+  # Используем официальный образ Ubuntu 24.04.
+  # В нём уже предустановлен Python 3.12 — он ставится через пакет python3.12.
+  image: ubuntu:24.04
+
+  # Пайплайн должен продолжать выполнение даже если тесты завершились ошибкой.
+  # Это важно, чтобы HTML-отчёт всё равно был опубликован.
+  allow_failure: true
+
+  # Перед выполнением основного скрипта настраиваем окружение.
+  before_script:
+    # ------------------------------------------
+    # 1. Установка системных пакетов
+    # ------------------------------------------
+    # Обновляем список пакетов.
+    - apt-get update
+
+    # Устанавливаем:
+    # python3.12           — интерпретатор Python
+    # python3.12-venv      — виртуальные окружения
+    # python3-pip          — менеджер пакетов Python
+    # git                  — клонирование тестового стенда
+    - apt-get install -y python3.12 python3.12-venv python3-pip git
+
+    # ------------------------------------------
+    # 2. Создание отдельного виртуального окружения Python
+    # ------------------------------------------
+
+    # Создаём и активируем виртуальное окружение Python.
+    - python3.12 -m venv venv
+    - source venv/bin/activate
+
+    # Устанавливаем зависимости самого проекта с нагрузочными тестами.
+    - pip install -r requirements.txt
+
+    # ------------------------------------------
+    # 3. Клонирование учебного тестового стенда
+    # ------------------------------------------
+    # Стенд включает HTTP/GRPC mock-сервисы и gateway-сервис,
+    # которые используются Locust-сценариями.
+    - git clone https://github.com/Nikita-Filonov/performance-qa-engineer-course.git
+
+    # Устанавливаем зависимости тестового стенда (FastAPI + gRPC + утилиты).
+    - pip install -r performance-qa-engineer-course/requirements.txt
+
+  # Основной блок запуска тестов и сервисов
+  script:
+    # ------------------------------------------
+    # 1. Запуск всех сервисов стенда
+    # ------------------------------------------
+    - cd performance-qa-engineer-course
+
+    # Запуск HTTP mock-сервера.
+    - python -m services.mock.server.http &
+
+    # Запуск gRPC mock-сервера.
+    - python -m services.mock.server.grpc &
+
+    # Запуск HTTP gateway.
+    - python -m services.gateway.server.http &
+
+    # Запуск gRPC gateway.
+    - python -m services.gateway.server.grpc &
+
+    # Возвращаемся в корневую директорию проекта.
+    - cd ..
+
+    # Даём всем сервисам 2–3 секунды, чтобы полностью подняться.
+    # Если уменьшить паузу — Locust может не успеть подключиться.
+    - sleep 3
+
+    # ------------------------------------------
+    # 2. Запуск нагрузочных тестов Locust
+    # ------------------------------------------
+    # --config=$SCENARIO — выбираем конфигурационный файл Locust
+    # --html=index.html  — сохраняем HTML-отчёт
+    - locust --config=$SCENARIO --html=index.html
+
+  # ------------------------------------------
+  # 3. Сохранение артефактов
+  # ------------------------------------------
+  artifacts:
+    # Сохраняем HTML-отчёт Locust.
+    paths:
+      - index.html
+    expire_in: 7 days   # храним 7 дней
+    when: always        # сохраняем даже если джоба упала
+
+  # Запуск джобы только при запуске через интерфейс “Run Pipeline (Web)”.
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+
+# -----------------------------------------------------------------------------
+# Джоба №2 — публикация HTML-отчёта Locust через GitLab Pages
+# -----------------------------------------------------------------------------
+pages:
+  stage: deploy
+  script:
+    # GitLab Pages публикует только содержимое директории public/.
+    - mkdir -p public
+
+    # Копируем HTML-отчёт, созданный в run-tests.
+    - cp index.html public/
+
+  # Публикуемый артефакт.
+  artifacts:
+    paths:
+      - public
+
+  # Выполнять публикацию только после завершения run-tests.
+  needs: [ "run-tests" ]
+
+  # Также запускается только при ручном запуске (web-trigger).
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
